@@ -46,7 +46,8 @@ M.setup = function(opts)
 		vim.keymap.set(opts.toggle_keymap[1], opts.toggle_keymap[2], M.toggle)
 	end
 	if opts.new_term_keymap then
-		vim.keymap.set(opts.new_term_keymap[1], opts.new_term_keymap[2], opts.new_term_keymap[3] or M.add_term)
+		vim.keymap.set(opts.new_term_keymap[1], opts.new_term_keymap[2],
+			       opts.new_term_keymap[3] or M.add_term)
 	end
 	if opts.next_term_keymap then
 		vim.keymap.set(opts.next_term_keymap[1], opts.next_term_keymap[2], M.next_term)
@@ -57,6 +58,11 @@ M.setup = function(opts)
 	opts.size = opts.size or { h = 80, w = 80 }
 	opts.size.h = opts.size.h or 80
 	opts.size.w = opts.size.w or 80
+	if type(opts.border) == "boolean" then
+		M.border = opts.border
+	else
+		M.border = true
+	end
 	M.size = opts.size
 	M.name = opts.name or "Term"
 	M.cmd = opts.cmd or { vim.o.shell }
@@ -79,7 +85,6 @@ M.setup = function(opts)
 	vim.api.nvim_create_autocmd("BufUnload", {
 		group = M.augroup,
 		callback = function(args)
-			M.log({"BufUnload: ", args})
 			vim.schedule(function()
 				M.delete_term(args.buf)
 			end)
@@ -89,7 +94,6 @@ M.setup = function(opts)
 end
 
 M.next_term = function()
-	M.log("Next term")
 	if M.is_visible then
 		for i, v in pairs(M.terminals) do
 			if v.buf == M.cur_term.buf then
@@ -101,8 +105,6 @@ M.next_term = function()
 				break
 			end
 		end
-		M.log("Already visible, switching term")
-		local bordered = true
 		local h = math.floor(vim.o.lines * (M.size.h / 100))
 		local bar_row = math.floor((vim.o.lines - h) / 2)
 		local w = math.floor(vim.o.columns * (M.size.w / 100))
@@ -122,17 +124,17 @@ M.next_term = function()
 			row = bar_row + 3,
 			col = bar_col,
 			width = w,
-			height = h - (bordered and 3 or 2),
+			height = h - 3 - 3,
 			relative = "editor",
 			style = "minimal",
-			border = bordered and "single" or colored_border,
+			border = M.border and "single" or colored_border,
 			zindex = 100,
 		}
 		if vim.api.nvim_win_is_valid(M.termwin) then
 			vim.api.nvim_win_close(M.termwin, false)
 		end
 		M.termwin = vim.api.nvim_open_win(M.cur_term.buf, true, term_win_opts)
-		if bordered then
+		if M.border then
 			vim.wo[M.termwin].winhl = "Normal:normal,floatborder:comment"
 		else
 			vim.wo[M.termwin].winhl = "Normal:exdarkbg,floatBorder:exdarkborder"
@@ -141,15 +143,12 @@ M.next_term = function()
 		volt.redraw(M.barbuf, "bar")
 		vim.cmd.startinsert()
 	else
-		M.log("Not visible, showing")
 		M.toggle()
 	end
 end
 
 M.prev_term = function()
-	M.log("Prev term")
 	if M.is_visible then
-		M.log("Already visible, switching term")
 		for i, v in pairs(M.terminals) do
 			if v.buf == M.cur_term.buf then
 				if i == 1 then
@@ -160,8 +159,6 @@ M.prev_term = function()
 				break
 			end
 		end
-		M.log("Already visible, switching term")
-		local bordered = true
 		local h = math.floor(vim.o.lines * (M.size.h / 100))
 		local bar_row = math.floor((vim.o.lines - h) / 2)
 		local w = math.floor(vim.o.columns * (M.size.w / 100))
@@ -181,17 +178,17 @@ M.prev_term = function()
 			row = bar_row + 3,
 			col = bar_col,
 			width = w,
-			height = h - (bordered and 3 or 2),
+			height = h - 3 - 3,
 			relative = "editor",
 			style = "minimal",
-			border = bordered and "single" or colored_border,
+			border = M.border and "single" or colored_border,
 			zindex = 100,
 		}
 		if vim.api.nvim_win_is_valid(M.termwin) then
 			vim.api.nvim_win_close(M.termwin, false)
 		end
 		M.termwin = vim.api.nvim_open_win(M.cur_term.buf, true, term_win_opts)
-		if bordered then
+		if M.border then
 			vim.wo[M.termwin].winhl = "Normal:normal,floatborder:comment"
 		else
 			vim.wo[M.termwin].winhl = "Normal:exdarkbg,floatBorder:exdarkborder"
@@ -201,14 +198,11 @@ M.prev_term = function()
 		vim.cmd.startinsert()
 
 	else
-		M.log("Not visible, showing")
 		M.toggle()
 	end
 end
 
 M.delete_term = function(buf)
-	local bordered = true
-	local bordered = true
 	local h = math.floor(vim.o.lines * (M.size.h / 100))
 	local bar_row = math.floor((vim.o.lines - h) / 2)
 	local w = math.floor(vim.o.columns * (M.size.w / 100))
@@ -229,16 +223,15 @@ M.delete_term = function(buf)
 		row = bar_row + 3,
 		col = bar_col,
 		width = w,
-		height = h - (bordered and 3 or 2),
+		height = h - 3 - 3,
 		relative = "editor",
 		style = "minimal",
-		border = bordered and "single" or colored_border,
+		border = M.border and "single" or colored_border,
 		zindex = 100,
 	}
 
 	for i, v in pairs(M.terminals) do
 		if v.buf == buf then
-			M.log("Deleted terminal: " .. v.name)
 			table.remove(M.terminals, i)
 			volt.redraw(M.barbuf, "bar")
 			if v.buf == M.cur_term.buf then
@@ -253,7 +246,6 @@ M.delete_term = function(buf)
 			if M.is_visible then
 				if #M.terminals == 0 then
 					M.is_visible = nil
-					M.log("Hiding")
 					vim.api.nvim_win_close(M.barwin, false)
 					M.barwin = nil
 					if vim.api.nvim_win_is_valid(M.termwin) then
@@ -266,8 +258,9 @@ M.delete_term = function(buf)
 					if vim.api.nvim_win_is_valid(M.termwin) then
 						vim.api.nvim_win_close(M.termwin, false)
 					end
-					M.termwin = vim.api.nvim_open_win(M.cur_term.buf, true, term_win_opts)
-					if bordered then
+					M.termwin = vim.api.nvim_open_win(M.cur_term.buf, true,
+									  term_win_opts)
+					if M.border then
 						vim.wo[M.termwin].winhl = "Normal:normal,floatborder:comment"
 					else
 						vim.wo[M.termwin].winhl = "Normal:exdarkbg,floatBorder:exdarkborder"
@@ -313,7 +306,6 @@ end
 M.add_term = function(opts)
 	local term = M.new_term_buf(opts)
 	table.insert(M.terminals, term)
-	M.log("Added terminal: " .. term.name)
 	M.cur_term = term
 	local cur_buf = vim.api.nvim_get_current_buf()
 	vim.api.nvim_set_current_buf(term.buf)
@@ -328,7 +320,6 @@ M.add_term = function(opts)
 		if #M.terminals == 1 then
 			return
 		else
-			local bordered = true
 			local h = math.floor(vim.o.lines * (M.size.h / 100))
 			local bar_row = math.floor((vim.o.lines - h) / 2)
 			local w = math.floor(vim.o.columns * (M.size.w / 100))
@@ -348,17 +339,17 @@ M.add_term = function(opts)
 				row = bar_row + 3,
 				col = bar_col,
 				width = w,
-				height = h - (bordered and 3 or 2),
+				height = h - 3 - 3,
 				relative = "editor",
 				style = "minimal",
-				border = bordered and "single" or colored_border,
+				border = M.border and "single" or colored_border,
 				zindex = 100,
 			}
 			if vim.api.nvim_win_is_valid(M.termwin) then
 				vim.api.nvim_win_close(M.termwin, false)
 			end
 			M.termwin = vim.api.nvim_open_win(M.cur_term.buf, true, term_win_opts)
-			if bordered then
+			if M.border then
 				vim.wo[M.termwin].winhl = "Normal:normal,floatborder:comment"
 			else
 				vim.wo[M.termwin].winhl = "Normal:exdarkbg,floatBorder:exdarkborder"
@@ -371,11 +362,8 @@ M.add_term = function(opts)
 end
 
 M.show = function()
-	M.log("Showing")
-	M.log({"M.terminals: ", M.terminals})
 	M.is_visible = true
 
-	local bordered = true
 	local h = math.floor(vim.o.lines * (M.size.h / 100))
 	local bar_row = math.floor((vim.o.lines - h) / 2)
 	local w = math.floor(vim.o.columns * (M.size.w / 100))
@@ -402,37 +390,35 @@ M.show = function()
 		border = "single",
 		zindex = 100,
 	}
-	M.log({"bar_win_opts: ", bar_win_opts})
 
 	local term_win_opts = {
 		row = bar_row + 3,
 		col = bar_col,
 		width = w,
-		height = h - (bordered and 3 or 2),
+		height = h - 3 - 3,
 		relative = "editor",
 		style = "minimal",
-		border = bordered and "single" or colored_border,
+		border = M.border and "single" or colored_border,
 		zindex = 100,
 	}
 
 	if #M.terminals == 0 then
-		M.log("No terminals, creating one")
 		M.add_term()
 	end
 
 	M.barwin = vim.api.nvim_open_win(M.barbuf, false, bar_win_opts)
-	if bordered then
+	if M.border then
 		vim.wo[M.barwin].winhl = "Normal:normal,floatborder:exred"
 	else
 		vim.wo[M.barwin].winhl = "Normal:exdarkbg,floatBorder:exdarkborder"
 	end
 
-	vim.api.nvim_set_hl(M.ns, "floatBorder", { link = bordered and "comment" or "exblack2border" })
-	vim.api.nvim_set_hl(M.ns, "Normal", { link = bordered and "normal" or "exblack2bg" })
+	vim.api.nvim_set_hl(M.ns, "floatBorder", { link = M.border and "comment" or "exblack2border" })
+	vim.api.nvim_set_hl(M.ns, "Normal", { link = M.border and "normal" or "exblack2bg" })
 	vim.api.nvim_set_option_value("modifiable", true, { buf = M.barbuf })
 
 	M.termwin = vim.api.nvim_open_win(M.cur_term.buf, true, term_win_opts)
-	if bordered then
+	if M.border then
 		vim.wo[M.termwin].winhl = "Normal:normal,floatborder:comment"
 	else
 		vim.wo[M.termwin].winhl = "Normal:exdarkbg,floatBorder:exdarkborder"
@@ -445,7 +431,6 @@ end
 
 M.hide = function()
 	M.is_visible = nil
-	M.log("Hiding")
 	vim.api.nvim_win_close(M.barwin, false)
 	M.barwin = nil
 	vim.api.nvim_win_close(M.termwin, false)
@@ -461,7 +446,6 @@ M.find_term = function(term_name)
 end
 
 M.toggle = function()
-	M.log("Toggling visibility")
 	if M.is_visible then
 		M.hide()
 	else
@@ -487,12 +471,10 @@ M.send_to_term = function(term_name, str)
 end
 
 M.show_term = function(buf)
-	M.log({"show_term:", buf, M.terminals})
 	for i, v in pairs(M.terminals) do
 		if v.buf == buf then
 			if M.is_visible then
 				M.cur_term = v
-				local bordered = true
 				local h = math.floor(vim.o.lines * (M.size.h / 100))
 				local bar_row = math.floor((vim.o.lines - h) / 2)
 				local w = math.floor(vim.o.columns * (M.size.w / 100))
@@ -512,17 +494,17 @@ M.show_term = function(buf)
 					row = bar_row + 3,
 					col = bar_col,
 					width = w,
-					height = h - (bordered and 3 or 2),
+					height = h - 3 - 3,
 					relative = "editor",
 					style = "minimal",
-					border = bordered and "single" or colored_border,
+					border = M.border and "single" or colored_border,
 					zindex = 100,
 				}
 				if vim.api.nvim_win_is_valid(M.termwin) then
 					vim.api.nvim_win_close(M.termwin, false)
 				end
 				M.termwin = vim.api.nvim_open_win(M.cur_term.buf, true, term_win_opts)
-				if bordered then
+				if M.border then
 					vim.wo[M.termwin].winhl = "Normal:normal,floatborder:comment"
 				else
 					vim.wo[M.termwin].winhl = "Normal:exdarkbg,floatBorder:exdarkborder"
@@ -539,7 +521,6 @@ M.show_term = function(buf)
 		end
 	end
 	print("Buffer not found")
-	M.log("Buffer not found: " .. tostring(buf))
 end
 
 return M
