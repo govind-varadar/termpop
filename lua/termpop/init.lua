@@ -40,7 +40,6 @@ M.setup = function(opts)
 	opts = opts or {}
 	if opts.logfile then
 		M.logfile = io.open(opts.logfile, "a")
-		M.log("Logfile: " .. opts.logfile)
 	end
 	if opts.toggle_keymap then
 		vim.keymap.set(opts.toggle_keymap[1], opts.toggle_keymap[2], M.toggle)
@@ -90,7 +89,6 @@ M.setup = function(opts)
 			end)
 		end,
 	})
-
 end
 
 M.next_term = function()
@@ -300,6 +298,18 @@ M.new_term_buf = function(opts)
 		buf = vim.api.nvim_create_buf(false, true),
 		cmd = opts.cmd or M.cmd,
 	}
+	vim.keymap.set({"n", "t"}, "<C-Del>",
+		       function()
+				for i, v in pairs(M.terminals) do
+					if v.buf == term.buf then
+						vim.api.nvim_buf_delete(term.buf, { force = true })
+						M.delete_term(term.buf)
+						return
+					end
+				end
+				vim.notify("Term buf not found for deletion: " .. term.buf)
+		       end,
+		       { buffer = term.buf })
 	return term
 end
 
