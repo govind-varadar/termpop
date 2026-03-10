@@ -104,9 +104,9 @@ M.next_term = function()
 		M.log("Already visible, switching term")
 		local bordered = true
 		local h = math.floor(vim.o.lines * (M.size.h / 100))
-		local bar_row = math.ceil((vim.o.lines - h) / 2)
+		local bar_row = math.floor((vim.o.lines - h) / 2)
 		local w = math.floor(vim.o.columns * (M.size.w / 100))
-		local bar_col = math.ceil((vim.o.columns - w) / 2)
+		local bar_col = math.floor((vim.o.columns - w) / 2)
 
 		local colored_border = {
 			{ " ", "exdarkborder" },
@@ -163,9 +163,9 @@ M.prev_term = function()
 		M.log("Already visible, switching term")
 		local bordered = true
 		local h = math.floor(vim.o.lines * (M.size.h / 100))
-		local bar_row = math.ceil((vim.o.lines - h) / 2)
+		local bar_row = math.floor((vim.o.lines - h) / 2)
 		local w = math.floor(vim.o.columns * (M.size.w / 100))
-		local bar_col = math.ceil((vim.o.columns - w) / 2)
+		local bar_col = math.floor((vim.o.columns - w) / 2)
 
 		local colored_border = {
 			{ " ", "exdarkborder" },
@@ -210,9 +210,9 @@ M.delete_term = function(buf)
 	local bordered = true
 	local bordered = true
 	local h = math.floor(vim.o.lines * (M.size.h / 100))
-	local bar_row = math.ceil((vim.o.lines - h) / 2)
+	local bar_row = math.floor((vim.o.lines - h) / 2)
 	local w = math.floor(vim.o.columns * (M.size.w / 100))
-	local bar_col = math.ceil((vim.o.columns - w) / 2)
+	local bar_col = math.floor((vim.o.columns - w) / 2)
 
 	local colored_border = {
 		{ " ", "exdarkborder" },
@@ -330,9 +330,9 @@ M.add_term = function(opts)
 		else
 			local bordered = true
 			local h = math.floor(vim.o.lines * (M.size.h / 100))
-			local bar_row = math.ceil((vim.o.lines - h) / 2)
+			local bar_row = math.floor((vim.o.lines - h) / 2)
 			local w = math.floor(vim.o.columns * (M.size.w / 100))
-			local bar_col = math.ceil((vim.o.columns - w) / 2)
+			local bar_col = math.floor((vim.o.columns - w) / 2)
 
 			local colored_border = {
 				{ " ", "exdarkborder" },
@@ -377,9 +377,9 @@ M.show = function()
 
 	local bordered = true
 	local h = math.floor(vim.o.lines * (M.size.h / 100))
-	local bar_row = math.ceil((vim.o.lines - h) / 2)
+	local bar_row = math.floor((vim.o.lines - h) / 2)
 	local w = math.floor(vim.o.columns * (M.size.w / 100))
-	local bar_col = math.ceil((vim.o.columns - w) / 2)
+	local bar_col = math.floor((vim.o.columns - w) / 2)
 
 	local colored_border = {
 		{ " ", "exdarkborder" },
@@ -402,6 +402,7 @@ M.show = function()
 		border = "single",
 		zindex = 100,
 	}
+	M.log({"bar_win_opts: ", bar_win_opts})
 
 	local term_win_opts = {
 		row = bar_row + 3,
@@ -468,6 +469,23 @@ M.toggle = function()
 	end
 end
 
+M.send_to_cur_terminal = function(str)
+	if M.cur_term then
+		vim.api.nvim_chan_send(vim.b[M.cur_term.buf].terminal_job_id, str)
+	else
+		print("No terminal to send to")
+	end
+end
+
+M.send_to_term = function(term_name, str)
+	local i, term = M.find_term(term_name)
+	if term then
+		vim.api.nvim_chan_send(vim.b[term.buf].terminal_job_id, str)
+	else
+		print("Terminal not found: " .. term_name)
+	end
+end
+
 M.show_term = function(buf)
 	M.log({"show_term:", buf, M.terminals})
 	for i, v in pairs(M.terminals) do
@@ -476,9 +494,9 @@ M.show_term = function(buf)
 				M.cur_term = v
 				local bordered = true
 				local h = math.floor(vim.o.lines * (M.size.h / 100))
-				local bar_row = math.ceil((vim.o.lines - h) / 2)
+				local bar_row = math.floor((vim.o.lines - h) / 2)
 				local w = math.floor(vim.o.columns * (M.size.w / 100))
-				local bar_col = math.ceil((vim.o.columns - w) / 2)
+				local bar_col = math.floor((vim.o.columns - w) / 2)
 
 				local colored_border = {
 					{ " ", "exdarkborder" },
