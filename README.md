@@ -4,6 +4,10 @@ A Neovim plugin for managing floating terminal windows with a sleek tabbed inter
 
 <img width="1930" height="1092" alt="Screenshot From 2026-03-10 18-11-11" src="https://github.com/user-attachments/assets/ebf13fc5-e016-4cdc-8b24-0fe0f4a46f75" />
 
+
+https://github.com/user-attachments/assets/4b56bd31-a510-4f34-a422-ad1506709182
+
+
 ## Features
 
 - Multiple terminal buffers in floating windows
