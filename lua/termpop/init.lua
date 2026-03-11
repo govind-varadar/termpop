@@ -25,7 +25,7 @@ M.barlines = function()
 		text_len = text_len + #name[1]
 		table.insert(line, name)
 		if count ~= num_of_terms then
-			table.insert(line, { "|", "comment" })
+			table.insert(line, { "|", "exred" })
 			text_len = text_len + 1
 		end
 	end
