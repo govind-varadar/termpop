@@ -18,11 +18,21 @@ Using [lazy.nvim](https://github.com/folke/lazy.nvim):
 
 ```lua
 {
-  "termpop",
-  dependencies = { "volt" },
-  config = function()
-    require("termpop").setup()
-  end
+  "govind-varadar/termpop",
+  branch = "mother", -- master? main? eff it, mother branch it is
+  dependencies = "nvzone/volt",
+  opts = {
+    border = true,
+    toggle_keymap = { {"n", "t"}, "<F12>"},
+    new_term_keymap = { {"n", "t"}, "<F9>", function()
+      require("termpop").add_term({ name = "bash" })
+    end},
+    prev_term_keymap = { {"n", "t"}, "<F10>"},
+    next_term_keymap = { {"n", "t"}, "<F11>"},
+    size = { h = 100, w = 85 },
+    name = "bash",
+    cmd = { "bash" },
+  },
 }
 ```
 
@@ -30,10 +40,22 @@ Using [packer.nvim](https://github.com/wbthomason/packer.nvim):
 
 ```lua
 use {
-  "termpop",
-  requires = { "volt" },
+  "govind-varadar/termpop",
+  branch = "mother",
+  requires = { "nvzone/volt" },
   config = function()
-    require("termpop").setup()
+    require("termpop").setup({
+      border = true,
+      toggle_keymap = { {"n", "t"}, "<F12>"},
+      new_term_keymap = { {"n", "t"}, "<F9>", function()
+        require("termpop").add_term({ name = "bash" })
+      end},
+      prev_term_keymap = { {"n", "t"}, "<F10>"},
+      next_term_keymap = { {"n", "t"}, "<F11>"},
+      size = { h = 100, w = 85 },
+      name = "bash",
+      cmd = { "bash" },
+    })
   end
 }
 ```
@@ -42,35 +64,37 @@ use {
 
 ```lua
 require("termpop").setup({
-  -- Keymap to toggle the terminal popup
-  toggle_keymap = { "n", "<leader>tt" },
-
-  -- Keymap to create a new terminal
-  new_term_keymap = { "n", "<leader>tn" },
-
-  -- Keymap to switch to next terminal
-  next_term_keymap = { "t", "<C-]>" },
-
-  -- Keymap to switch to previous terminal
-  prev_term_keymap = { "t", "<C-[>" },
-
-  -- Window size as percentage of editor dimensions
-  size = {
-    h = 80,  -- height percentage
-    w = 80   -- width percentage
-  },
-
   -- Enable or disable window borders
   border = true,
 
+  -- Optional log file for debugging
+  logfile = os.getenv("HOME") .. "/.cache/termpop.log",
+
+  -- Keymap to toggle the terminal popup (modes, key)
+  toggle_keymap = { {"n", "t"}, "<F12>" },
+
+  -- Keymap to create a new terminal (modes, key, optional function)
+  new_term_keymap = { {"n", "t"}, "<F9>", function()
+    require("termpop").add_term({ name = "bash" })
+  end},
+
+  -- Keymap to switch to previous terminal
+  prev_term_keymap = { {"n", "t"}, "<F10>" },
+
+  -- Keymap to switch to next terminal
+  next_term_keymap = { {"n", "t"}, "<F11>" },
+
+  -- Window size as percentage of editor dimensions
+  size = {
+    h = 100,  -- height percentage
+    w = 85    -- width percentage
+  },
+
   -- Default name for terminal tabs
-  name = "Term",
+  name = "bash",
 
   -- Default shell command
-  cmd = { vim.o.shell },
-
-  -- Optional log file for debugging
-  logfile = "/tmp/termpop.log"
+  cmd = { "bash" },
 })
 ```
 
@@ -100,6 +124,18 @@ require("termpop").add_term({
   name = "Python",
   cmd = { "python3" }
 })
+
+-- Create a terminal for Claude Code
+require("termpop").add_term({
+  name = "Claude",
+  cmd = { "claude" }
+})
+
+-- Create a terminal for Cursor Agent
+require("termpop").add_term({
+  name = "Cursor",
+  cmd = { "cursor", "agent" }
+})
 ```
 
 ### Sending Commands to Terminals
@@ -124,6 +160,64 @@ Switch to a terminal by its buffer number:
 require("termpop").show_term(buf_number)
 ```
 
+### Advanced Usage: Send Filename to Terminal
+
+Send the current file path to a specific terminal (useful for Claude Code and Cursor Agent):
+
+```lua
+local termpop = require("termpop")
+
+-- Helper function to create terminal toggle
+local function make_toggle(name, cmd)
+  return function()
+    local i, v = termpop.find_term(name)
+    if v then
+      termpop.show_term(v.buf)
+    else
+      termpop.add_term({ name = name, cmd = cmd })
+    end
+  end
+end
+
+local claude_toggle = make_toggle("claude", { "claude" })
+
+-- Send current filename to terminal
+local function sendfilename(term_name, toggle_func)
+  local filename = vim.api.nvim_buf_get_name(0)
+  toggle_func()
+  termpop.send_to_term(term_name, "@" .. filename .. "\n")
+end
+
+-- Keymap to send filename to Claude Code
+vim.keymap.set("n", "<leader>bf", function()
+  sendfilename("claude", claude_toggle)
+end, {desc = "send filename to claude code and toggle claude terminal"})
+```
+
+### Advanced Usage: Send Filename with Line Range
+
+Send the current file path with a line range to a specific terminal (for visual selections):
+
+```lua
+-- Send filename with line range (for visual mode)
+local function sendfilename_line(term_name, toggle_func)
+  local filename = vim.api.nvim_buf_get_name(0)
+  local start_line = vim.fn.line("v")
+  local end_line = vim.fn.line(".")
+  if start_line > end_line then
+    start_line, end_line = end_line, start_line
+  end
+  local arg = "@" .. filename .. ":" .. start_line .. "-" .. end_line .. "\n"
+  toggle_func()
+  termpop.send_to_term(term_name, arg)
+end
+
+-- Keymap to send filename with line range to Claude Code (visual mode)
+vim.keymap.set("v", "<leader>bl", function()
+  sendfilename_line("claude", claude_toggle)
+end, {desc = "send filename and line number to claude and toggle claude terminal"})
+```
+
 ## Example Setup
 
 ```lua
@@ -142,6 +236,4 @@ require("termpop").setup({
 
 - [volt](https://github.com/volt-nvim/volt) - Required for the tab bar rendering
 
-## License
 
-MIT
