@@ -234,6 +234,6 @@ require("termpop").setup({
 
 ## Dependencies
 
-- [volt](https://github.com/volt-nvim/volt) - Required for the tab bar rendering
+- [volt](https://github.com/nvzone/volt) - Required for the tab bar rendering
 
 
