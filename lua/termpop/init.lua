@@ -68,19 +68,6 @@ M.setup = function(opts)
 	M.terminals = {}
 	M.ns = vim.api.nvim_create_namespace("termpop")
 	M.augroup = vim.api.nvim_create_augroup("TermPopAu", { clear = true })
-	M.barbuf = vim.api.nvim_create_buf(false, true)
-	volt.gen_data({
-		{
-			buf = M.barbuf,
-			ns = M.ns,
-			layout = {
-					{
-						lines = M.barlines,
-						name = "bar",
-					},
-			},
-		},
-	})
 	vim.api.nvim_create_autocmd("BufUnload", {
 		group = M.augroup,
 		callback = function(args)
@@ -231,7 +218,7 @@ M.delete_term = function(buf)
 	for i, v in pairs(M.terminals) do
 		if v.buf == buf then
 			table.remove(M.terminals, i)
-			volt.redraw(M.barbuf, "bar")
+			if M.barbuf then volt.redraw(M.barbuf, "bar") end
 			if v.buf == M.cur_term.buf then
 				M.cur_term = nil
 				if #M.terminals == 0 then
@@ -250,7 +237,7 @@ M.delete_term = function(buf)
 						vim.api.nvim_win_close(M.termwin, false)
 					end
 					M.termwin = nil
-					volt.redraw(M.barbuf, "bar")
+					if M.barbuf then volt.redraw(M.barbuf, "bar") end
 					return
 				else
 					if vim.api.nvim_win_is_valid(M.termwin) then
@@ -263,11 +250,11 @@ M.delete_term = function(buf)
 					else
 						vim.wo[M.termwin].winhl = "Normal:exdarkbg,floatBorder:exdarkborder"
 					end
-					volt.redraw(M.barbuf, "bar")
+					if M.barbuf then volt.redraw(M.barbuf, "bar") end
 					vim.cmd.startinsert()
 				end
 			end
-			volt.redraw(M.barbuf, "bar")
+			if M.barbuf then volt.redraw(M.barbuf, "bar") end
 			return
 		end
 	end
@@ -412,6 +399,35 @@ M.show = function()
 		zindex = 100,
 	}
 
+	if M.barbuf == nil then
+		M.barbuf = vim.api.nvim_create_buf(false, true)
+		volt.gen_data({
+			{
+				buf = M.barbuf,
+				ns = M.ns,
+				layout = {
+					{
+						lines = M.barlines,
+						name = "bar",
+					},
+				},
+			},
+		})
+		vim.api.nvim_create_autocmd("WinClosed", {
+			group = M.augroup,
+			callback = function(args)
+				vim.schedule(function()
+					if M.barbuf and args.buf == M.barbuf then
+						M.log("Bar buffer closed, hiding termpop")
+						M.log("Args: " .. vim.inspect(args))
+						vim.api.nvim_buf_delete(M.barbuf, { force = true })
+						M.barbuf = nil
+					end
+				end)
+			end,
+		})
+
+	end
 	if #M.terminals == 0 then
 		M.add_term()
 	end
@@ -445,6 +461,10 @@ M.hide = function()
 	M.barwin = nil
 	vim.api.nvim_win_close(M.termwin, false)
 	M.termwin = nil
+	if M.barbuf then
+		vim.api.nvim_buf_delete(M.barbuf, { force = true })
+		M.barbuf = nil
+	end
 end
 
 M.find_term = function(term_name)
