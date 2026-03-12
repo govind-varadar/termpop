@@ -1,35 +1,10 @@
 local M = {}
 
-local volt = require("volt")
-
 M.log = function(args)
 	if M.logfile then
 		M.logfile:write(os.date() .. ": " .. vim.inspect(args) .. "\n")
 		M.logfile:flush()
 	end
-end
-
-M.barlines = function()
-	local text_len = 0
-	local line = {}
-	local count = 0
-	local num_of_terms = M.term_count()
-	for i, v in pairs(M.terminals) do
-		count = count + 1
-		if v.buf == M.cur_term.buf then
-			hl_color = "exgreen"
-		else
-			hl_color = "comment"
-		end
-		name = { v.name .. "[" .. tostring(i) .. "]", hl_color }
-		text_len = text_len + #name[1]
-		table.insert(line, name)
-		if count ~= num_of_terms then
-			table.insert(line, { "|", "exred" })
-			text_len = text_len + 1
-		end
-	end
-	return { line }
 end
 
 M.setup = function(opts)
@@ -125,7 +100,7 @@ M.next_term = function()
 			vim.wo[M.termwin].winhl = "Normal:exdarkbg,floatBorder:exdarkborder"
 		end
 
-		volt.redraw(M.barbuf, "bar")
+		M.update_barbuf()
 		vim.cmd.startinsert()
 	else
 		M.toggle()
@@ -179,7 +154,7 @@ M.prev_term = function()
 			vim.wo[M.termwin].winhl = "Normal:exdarkbg,floatBorder:exdarkborder"
 		end
 
-		volt.redraw(M.barbuf, "bar")
+		M.update_barbuf()
 		vim.cmd.startinsert()
 
 	else
@@ -218,7 +193,7 @@ M.delete_term = function(buf)
 	for i, v in pairs(M.terminals) do
 		if v.buf == buf then
 			table.remove(M.terminals, i)
-			if M.barbuf then volt.redraw(M.barbuf, "bar") end
+			M.update_barbuf()
 			if v.buf == M.cur_term.buf then
 				M.cur_term = nil
 				if #M.terminals == 0 then
@@ -237,7 +212,7 @@ M.delete_term = function(buf)
 						vim.api.nvim_win_close(M.termwin, false)
 					end
 					M.termwin = nil
-					if M.barbuf then volt.redraw(M.barbuf, "bar") end
+					M.update_barbuf()
 					return
 				else
 					if vim.api.nvim_win_is_valid(M.termwin) then
@@ -250,11 +225,10 @@ M.delete_term = function(buf)
 					else
 						vim.wo[M.termwin].winhl = "Normal:exdarkbg,floatBorder:exdarkborder"
 					end
-					if M.barbuf then volt.redraw(M.barbuf, "bar") end
 					vim.cmd.startinsert()
 				end
 			end
-			if M.barbuf then volt.redraw(M.barbuf, "bar") end
+			M.update_barbuf()
 			return
 		end
 	end
@@ -300,6 +274,32 @@ M.new_term_buf = function(opts)
 	return term
 end
 
+M.update_barbuf = function()
+	if M.barbuf == nil then
+		return
+	end
+	vim.api.nvim_buf_clear_namespace(M.barbuf, M.ns, 0, -1)
+	vim.api.nvim_set_option_value("modifiable", true, { buf = M.barbuf })
+	vim.api.nvim_buf_set_lines(M.barbuf, 0, -1, true, { string.rep(" ", vim.o.columns) })
+	local col = 0
+	for i, v in pairs(M.terminals) do
+		if v.buf == M.cur_term.buf then
+			hl_color = "added"
+		else
+			hl_color = "comment"
+		end
+		name = { v.name .. "[" .. tostring(i) .. "]", hl_color }
+		if col + #name[1] > vim.o.columns then
+			break
+		end
+		local opts = { virt_text_win_col = col, virt_text = { name } }
+		M.log({"Setting extmark for term ", name, " at col " .. col})
+		vim.api.nvim_buf_set_extmark(M.barbuf, M.ns, 0, col, opts)
+		col = col + #name[1]
+	end
+
+end
+
 M.add_term = function(opts)
 	local term = M.new_term_buf(opts)
 	table.insert(M.terminals, term)
@@ -309,7 +309,7 @@ M.add_term = function(opts)
 	vim.fn.jobstart(term.cmd, { term = true })
 	vim.api.nvim_set_current_buf(cur_buf)
 
-	volt.redraw(M.barbuf, "bar")
+	M.update_barbuf()
 
 	if not M.is_visible then
 		M.show()
@@ -352,7 +352,7 @@ M.add_term = function(opts)
 				vim.wo[M.termwin].winhl = "Normal:exdarkbg,floatBorder:exdarkborder"
 			end
 
-			volt.redraw(M.barbuf, "bar")
+			M.update_barbuf()
 			vim.cmd.startinsert()
 		end
 	end
@@ -401,25 +401,11 @@ M.show = function()
 
 	if M.barbuf == nil then
 		M.barbuf = vim.api.nvim_create_buf(false, true)
-		volt.gen_data({
-			{
-				buf = M.barbuf,
-				ns = M.ns,
-				layout = {
-					{
-						lines = M.barlines,
-						name = "bar",
-					},
-				},
-			},
-		})
 		vim.api.nvim_create_autocmd("WinClosed", {
 			group = M.augroup,
 			callback = function(args)
 				vim.schedule(function()
 					if M.barbuf and args.buf == M.barbuf then
-						M.log("Bar buffer closed, hiding termpop")
-						M.log("Args: " .. vim.inspect(args))
 						vim.api.nvim_buf_delete(M.barbuf, { force = true })
 						M.barbuf = nil
 					end
@@ -434,7 +420,7 @@ M.show = function()
 
 	M.barwin = vim.api.nvim_open_win(M.barbuf, false, bar_win_opts)
 	if M.border then
-		vim.wo[M.barwin].winhl = "Normal:normal,floatborder:exred"
+		vim.wo[M.barwin].winhl = "Normal:normal,floatborder:removed"
 	else
 		vim.wo[M.barwin].winhl = "Normal:exdarkbg,floatBorder:exdarkborder"
 	end
@@ -450,8 +436,7 @@ M.show = function()
 		vim.wo[M.termwin].winhl = "Normal:exdarkbg,floatBorder:exdarkborder"
 	end
 
-	volt.run(M.barbuf, { h = 1, w = bar_win_opts.width })
-	volt.redraw(M.barbuf, "bar")
+	M.update_barbuf()
 	vim.cmd.startinsert()
 end
 
@@ -540,7 +525,7 @@ M.show_term = function(buf)
 					vim.wo[M.termwin].winhl = "Normal:exdarkbg,floatBorder:exdarkborder"
 				end
 
-				volt.redraw(M.barbuf, "bar")
+				M.update_barbuf()
 				vim.cmd.startinsert()
 				return
 			else
