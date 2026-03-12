@@ -26,7 +26,6 @@ Using [lazy.nvim](https://github.com/folke/lazy.nvim):
 {
   "govind-varadar/termpop",
   branch = "mother", -- master? main? eff it, mother branch it is
-  dependencies = "nvzone/volt",
   opts = {
     border = true,
     toggle_keymap = { {"n", "t"}, "<F12>"},
@@ -48,7 +47,6 @@ Using [packer.nvim](https://github.com/wbthomason/packer.nvim):
 use {
   "govind-varadar/termpop",
   branch = "mother",
-  requires = { "nvzone/volt" },
   config = function()
     require("termpop").setup({
       border = true,
@@ -237,9 +235,4 @@ require("termpop").setup({
   name = "Terminal"
 })
 ```
-
-## Dependencies
-
-- [volt](https://github.com/nvzone/volt) - Required for the tab bar rendering
-
 
