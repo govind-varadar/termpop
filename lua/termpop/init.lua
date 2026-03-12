@@ -293,7 +293,6 @@ M.update_barbuf = function()
 			break
 		end
 		local opts = { virt_text_win_col = col, virt_text = { name } }
-		M.log({"Setting extmark for term ", name, " at col " .. col})
 		vim.api.nvim_buf_set_extmark(M.barbuf, M.ns, 0, col, opts)
 		col = col + #name[1]
 	end
