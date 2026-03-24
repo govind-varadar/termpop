@@ -51,6 +51,7 @@ M.setup = function(opts)
 			end)
 		end,
 	})
+	vim.api.nvim_set_hl(0, "slategray4", { fg = "#c6e2ff" })
 end
 
 M.next_term = function()
@@ -95,7 +96,7 @@ M.next_term = function()
 		end
 		M.termwin = vim.api.nvim_open_win(M.cur_term.buf, true, term_win_opts)
 		if M.border then
-			vim.wo[M.termwin].winhl = "Normal:normal,floatborder:comment"
+			vim.wo[M.termwin].winhl = "Normal:normal,floatborder:slategray4"
 		else
 			vim.wo[M.termwin].winhl = "Normal:exdarkbg,floatBorder:exdarkborder"
 		end
@@ -149,7 +150,7 @@ M.prev_term = function()
 		end
 		M.termwin = vim.api.nvim_open_win(M.cur_term.buf, true, term_win_opts)
 		if M.border then
-			vim.wo[M.termwin].winhl = "Normal:normal,floatborder:comment"
+			vim.wo[M.termwin].winhl = "Normal:normal,floatborder:slategray4"
 		else
 			vim.wo[M.termwin].winhl = "Normal:exdarkbg,floatBorder:exdarkborder"
 		end
@@ -221,7 +222,7 @@ M.delete_term = function(buf)
 					M.termwin = vim.api.nvim_open_win(M.cur_term.buf, true,
 									  term_win_opts)
 					if M.border then
-						vim.wo[M.termwin].winhl = "Normal:normal,floatborder:comment"
+						vim.wo[M.termwin].winhl = "Normal:normal,floatborder:slategray4"
 					else
 						vim.wo[M.termwin].winhl = "Normal:exdarkbg,floatBorder:exdarkborder"
 					end
@@ -286,7 +287,7 @@ M.update_barbuf = function()
 		if v.buf == M.cur_term.buf then
 			hl_color = "added"
 		else
-			hl_color = "comment"
+			hl_color = "slategray4"
 		end
 		name = { v.name .. "[" .. tostring(i) .. "]", hl_color }
 		if col + #name[1] > vim.o.columns then
@@ -346,7 +347,7 @@ M.add_term = function(opts)
 			end
 			M.termwin = vim.api.nvim_open_win(M.cur_term.buf, true, term_win_opts)
 			if M.border then
-				vim.wo[M.termwin].winhl = "Normal:normal,floatborder:comment"
+				vim.wo[M.termwin].winhl = "Normal:normal,floatborder:slategray4"
 			else
 				vim.wo[M.termwin].winhl = "Normal:exdarkbg,floatBorder:exdarkborder"
 			end
@@ -424,13 +425,13 @@ M.show = function()
 		vim.wo[M.barwin].winhl = "Normal:exdarkbg,floatBorder:exdarkborder"
 	end
 
-	vim.api.nvim_set_hl(M.ns, "floatBorder", { link = M.border and "comment" or "exblack2border" })
+	vim.api.nvim_set_hl(M.ns, "floatBorder", { link = M.border and "slatergray4" or "exblack2border" })
 	vim.api.nvim_set_hl(M.ns, "Normal", { link = M.border and "normal" or "exblack2bg" })
 	vim.api.nvim_set_option_value("modifiable", true, { buf = M.barbuf })
 
 	M.termwin = vim.api.nvim_open_win(M.cur_term.buf, true, term_win_opts)
 	if M.border then
-		vim.wo[M.termwin].winhl = "Normal:normal,floatborder:comment"
+		vim.wo[M.termwin].winhl = "Normal:normal,floatborder:slategray4"
 	else
 		vim.wo[M.termwin].winhl = "Normal:exdarkbg,floatBorder:exdarkborder"
 	end
@@ -519,7 +520,7 @@ M.show_term = function(buf)
 				end
 				M.termwin = vim.api.nvim_open_win(M.cur_term.buf, true, term_win_opts)
 				if M.border then
-					vim.wo[M.termwin].winhl = "Normal:normal,floatborder:comment"
+					vim.wo[M.termwin].winhl = "Normal:normal,floatborder:slategray4"
 				else
 					vim.wo[M.termwin].winhl = "Normal:exdarkbg,floatBorder:exdarkborder"
 				end
