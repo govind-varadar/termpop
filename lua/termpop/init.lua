@@ -289,7 +289,7 @@ M.update_barbuf = function()
 		else
 			hl_color = "slategray4"
 		end
-		name = { v.name .. "[" .. tostring(i) .. "]", hl_color }
+		name = { ((i == 1) and "" or "|") .. v.name .. "[" .. tostring(i) .. "]", hl_color }
 		if col + #name[1] > vim.o.columns then
 			break
 		end
